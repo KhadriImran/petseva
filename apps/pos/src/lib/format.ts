@@ -2,6 +2,8 @@ import { formatINR } from '@rms/shared';
 
 export const inr = (p: number) => formatINR(p);
 export const inrShort = (p: number) => (p % 100 === 0 ? '₹' + (p / 100).toLocaleString('en-IN') : formatINR(p));
+/** menu price label: 0 means APS (as per size / market price, entered when ordering) */
+export const menuPrice = (p: number) => (p === 0 ? 'APS' : inrShort(p));
 export const timeAgo = (iso: string) => {
   const m = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
   if (m < 1) return 'now';

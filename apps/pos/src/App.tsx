@@ -5,6 +5,7 @@ import Layout from './components/Layout';
 import { bootstrap, disconnectSocket, useSync } from './lib/sync';
 import AdminMenu from './pages/admin/AdminMenu';
 import AdminSettings from './pages/admin/AdminSettings';
+import AdminStaff from './pages/admin/AdminStaff';
 import AdminTables from './pages/admin/AdminTables';
 import Floor from './pages/Floor';
 import Login from './pages/Login';
@@ -47,6 +48,7 @@ export default function App() {
             <Route path="/admin/menu" element={<AdminMenu />} />
             <Route path="/admin/tables" element={<AdminTables />} />
             <Route path="/admin/settings" element={<AdminSettings />} />
+            <Route path="/admin/staff" element={<AdminStaff />} />
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </Layout>

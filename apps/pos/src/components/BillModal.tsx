@@ -170,7 +170,7 @@ export function BillModal({ order, mode, onClose }: { order: Order; mode: 'bill'
               {totals.discountTotal > 0 && <Row label="Discount" value={-totals.discountTotal} tone="text-emerald-400" />}
               {totals.serviceCharge > 0 && <Row label={`Service charge`} value={totals.serviceCharge} />}
               {totals.deliveryCharge > 0 && <Row label="Delivery charge" value={totals.deliveryCharge} />}
-              {totals.taxSummary.map((t) => (
+              {totals.taxSummary.filter((t) => t.tax !== 0).map((t) => (
                 <div key={t.rateBps} className="contents">
                   <Row label={`CGST @${t.rateBps / 200}%`} value={t.cgst} muted />
                   <Row label={`SGST @${t.rateBps / 200}%`} value={t.sgst} muted />

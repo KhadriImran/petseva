@@ -1,0 +1,16 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "npm install",
+  "buildCommand": "node scripts/vercel-build.js",
+  "outputDirectory": "apps/pos/dist",
+  "regions": ["bom1"],
+  "functions": {
+    "api/index.js": { "maxDuration": 30 }
+  },
+  "rewrites": [{ "source": "/api/:path*", "destination": "/api/index" }],
+  "headers": [
+    { "source": "/sw.js", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] },
+    { "source": "/index.html", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] }
+  ]
+}

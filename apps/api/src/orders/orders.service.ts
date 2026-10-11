@@ -21,6 +21,8 @@ export interface NewItemInput {
   qty: number;
   note?: string;
   discount?: DiscountSpec | null;
+  /** price in paise for APS items (menu price 0); ignored for fixed-price items */
+  customPrice?: number;
 }
 export interface CreateOrderInput {
   id?: string;
@@ -139,6 +141,12 @@ export class OrdersService {
         if (!a) throw new BadRequestException(`Addon not found: ${id}`);
         return { id: a.id, name: a.name, price: a.price };
       });
+      // APS ("as per size") items have price 0 on the menu; the POS sends the price agreed at the table.
+      let unitPrice = v?.price ?? m.item.price;
+      if (unitPrice === 0) {
+        if (!Number.isInteger(inp.customPrice) || inp.customPrice! <= 0) throw new BadRequestException(`Enter today's price for ${m.item.name}${v ? ` (${v.name})` : ''}`);
+        unitPrice = inp.customPrice!;
+      }
       return {
         id: inp.id ?? randomUUID(),
         outletId,
@@ -146,7 +154,7 @@ export class OrdersService {
         name: m.item.name,
         variationId: v?.id ?? null,
         variationName: v?.name ?? null,
-        unitPrice: v?.price ?? m.item.price,
+        unitPrice,
         addons: chosenAddons,
         qty: inp.qty,
         note: inp.note ?? null,

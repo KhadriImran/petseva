@@ -75,7 +75,8 @@ export function buildReceipt(data: ReceiptData, width = 42): EscPos {
   if (o.fssai) p.line(`FSSAI: ${o.fssai}`);
   if (o.header) p.line(o.header);
   p.rule('=');
-  p.bold(true).line(data.duplicate ? 'DUPLICATE BILL' : data.provisional ? 'PROVISIONAL BILL' : 'TAX INVOICE').bold(false);
+  // a GST "tax invoice" needs a GSTIN; unregistered outlets print a plain bill
+  p.bold(true).line(data.duplicate ? 'DUPLICATE BILL' : data.provisional ? 'PROVISIONAL BILL' : o.gstin ? 'TAX INVOICE' : 'BILL').bold(false);
   p.align('left');
   p.row(`Bill: ${data.billNumber}`, fmtDate(data.createdAt));
   p.row(`Order: ${data.orderNumber}`, ORDER_TYPE_LABEL[data.orderType] + (data.tableName ? ` / ${data.tableName}` : ''));

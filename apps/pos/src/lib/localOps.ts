@@ -14,6 +14,8 @@ export interface NewItemInput {
   addonIds?: string[];
   qty: number;
   note?: string;
+  /** price (paise) typed for APS items; the menu price wins for fixed-price items */
+  customPrice?: number;
 }
 
 async function ctx() {
@@ -45,7 +47,7 @@ function resolveLine(menu: Menu, outlet: Outlet, inp: NewItemInput, orderId: str
     name: item.name,
     variationId: v?.id ?? null,
     variationName: v?.name ?? null,
-    unitPrice: v?.price ?? item.price,
+    unitPrice: (v?.price ?? item.price) || inp.customPrice || 0,
     addons,
     qty: inp.qty,
     note: inp.note ?? null,

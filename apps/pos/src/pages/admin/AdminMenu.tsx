@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Badge, Button, Input, Modal } from '../../components/ui';
 import { api } from '../../lib/api';
 import { cache } from '../../lib/db';
-import { cn, FOOD_DOT, inr } from '../../lib/format';
+import { cn, FOOD_DOT, menuPrice } from '../../lib/format';
 import { refreshMenu } from '../../lib/sync';
 import type { MenuItem } from '../../lib/types';
 import { toast } from '../../store/toast';
@@ -103,7 +103,7 @@ export default function AdminMenu() {
                 </td>
                 <td className="px-3 py-1.5 text-slate-400">{i.category}</td>
                 <td className="px-3 py-1.5 text-slate-400">{i.station}</td>
-                <td className="px-3 py-1.5 text-right">{inr(i.price)}</td>
+                <td className="px-3 py-1.5 text-right">{menuPrice(i.price)}</td>
                 <td className="px-3 py-1.5 text-slate-400">{i.taxRateBps / 100}%</td>
                 <td className="px-3 py-1.5">
                   <Toggle on={i.available} onChange={(v) => flag(i, { available: v })} />
@@ -126,7 +126,7 @@ export default function AdminMenu() {
             <label className="col-span-2">Name<Input value={edit.name ?? ''} onChange={(e) => setEdit({ ...edit, name: e.target.value })} /></label>
             <label>Category<select className="h-10 w-full rounded-lg border border-slate-700 bg-slate-900 px-2" value={edit.categoryId} onChange={(e) => setEdit({ ...edit, categoryId: e.target.value })}>{menu.categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
             <label>Short code<Input value={edit.shortCode ?? ''} onChange={(e) => setEdit({ ...edit, shortCode: e.target.value })} /></label>
-            <label>Price (₹)<Input type="number" value={(edit.price ?? 0) / 100} onChange={(e) => setEdit({ ...edit, price: Math.round(Number(e.target.value) * 100) })} /></label>
+            <label>Price (₹) <span className="text-xs text-slate-500">0 = APS, asked at order</span><Input type="number" value={(edit.price ?? 0) / 100} onChange={(e) => setEdit({ ...edit, price: Math.round(Number(e.target.value) * 100) })} /></label>
             <label>Packaging (₹)<Input type="number" value={(edit.packagingCharge ?? 0) / 100} onChange={(e) => setEdit({ ...edit, packagingCharge: Math.round(Number(e.target.value) * 100) })} /></label>
             <label>Food type<select className="h-10 w-full rounded-lg border border-slate-700 bg-slate-900 px-2" value={edit.foodType} onChange={(e) => setEdit({ ...edit, foodType: e.target.value as any })}><option value="VEG">Veg</option><option value="NON_VEG">Non-veg</option><option value="EGG">Egg</option></select></label>
             <label>GST slab<select className="h-10 w-full rounded-lg border border-slate-700 bg-slate-900 px-2" value={edit.taxSlabId ?? ''} onChange={(e) => setEdit({ ...edit, taxSlabId: e.target.value || null })}><option value="">None</option>{menu.taxSlabs.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label>

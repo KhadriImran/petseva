@@ -11,7 +11,7 @@ import { Badge, Button, Input, Modal } from '../components/ui';
 import { actions, OpRejected } from '../lib/actions';
 import { api } from '../lib/api';
 import { cache, db } from '../lib/db';
-import { cn, FOOD_DOT, inr, inrShort, uuid } from '../lib/format';
+import { cn, FOOD_DOT, inr, inrShort, menuPrice, uuid } from '../lib/format';
 import { billInputFor } from '../lib/localOps';
 import { useSync } from '../lib/sync';
 import type { Area, MenuItem, Order, OrderItem } from '../lib/types';
@@ -84,14 +84,14 @@ export default function OrderPage() {
   // ---- draft helpers
   const addLine = (l: Omit<DraftLine, 'key'>) => {
     setDraft((d) => {
-      const same = d.find((x) => x.itemId === l.itemId && x.variationId === l.variationId && x.note === l.note && JSON.stringify(x.addons.map((a) => a.id)) === JSON.stringify(l.addons.map((a) => a.id)));
+      const same = d.find((x) => x.itemId === l.itemId && x.variationId === l.variationId && x.unitPrice === l.unitPrice && x.note === l.note && JSON.stringify(x.addons.map((a) => a.id)) === JSON.stringify(l.addons.map((a) => a.id)));
       if (same) return d.map((x) => (x === same ? { ...x, qty: x.qty + l.qty } : x));
       return [...d, { ...l, key: uuid() }];
     });
   };
   const tapItem = (i: MenuItem) => {
     if (!i.available || i.stockOut) return toast(`${i.name} is not available`, 'err');
-    if (i.variations.length || i.addonGroupIds.length) setModalItem(i);
+    if (i.variations.length || i.addonGroupIds.length || i.price === 0) setModalItem(i);
     else addLine({ itemId: i.id, name: i.name, variationId: null, variationName: null, unitPrice: i.price, addons: [], qty: 1, note: '', station: i.station, taxRateBps: i.taxRateBps, packagingCharge: i.packagingCharge });
     setQ('');
   };
@@ -111,7 +111,7 @@ export default function OrderPage() {
     }
   }, []);
 
-  const draftInputs = () => draft.map((l) => ({ itemId: l.itemId, variationId: l.variationId, addonIds: l.addons.map((a) => a.id), qty: l.qty, note: l.note || undefined }));
+  const draftInputs = () => draft.map((l) => ({ itemId: l.itemId, variationId: l.variationId, addonIds: l.addons.map((a) => a.id), qty: l.qty, note: l.note || undefined, customPrice: l.unitPrice }));
 
   const commit = async (): Promise<Order> => {
     if (order) {
@@ -255,7 +255,7 @@ export default function OrderPage() {
               </div>
               <div className="flex items-end justify-between text-xs">
                 <span className="text-slate-500">{i.shortCode}</span>
-                <span className="font-semibold text-slate-200">{i.variations.length ? `${inrShort(Math.min(...i.variations.map((v) => v.price)))}+` : inrShort(i.price)}</span>
+                <span className="font-semibold text-slate-200">{i.variations.length ? (i.variations.some((v) => v.price > 0) ? `${inrShort(Math.min(...i.variations.filter((v) => v.price > 0).map((v) => v.price)))}+` : 'APS') : menuPrice(i.price)}</span>
               </div>
               {i.stockOut && <span className="absolute right-1 top-1 rounded bg-red-900 px-1 text-[10px] text-red-200">OUT</span>}
             </button>

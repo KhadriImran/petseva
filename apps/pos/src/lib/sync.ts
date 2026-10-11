@@ -170,9 +170,49 @@ export async function discardRejected(opId: string) {
   await refreshCounts();
 }
 
+/**
+ * 'socket' = Socket.IO push from a long-running API server (local / VPS).
+ * 'poll'   = serverless hosting (Vercel) where WebSockets aren't available: poll floor + open orders.
+ */
+const REALTIME = (import.meta.env.VITE_REALTIME as string | undefined) ?? 'socket';
+const POLL_MS = 5000;
+const IDLE_STOP_MS = 20 * 60 * 1000; // stop polling when nobody touched this screen for 20 min (lets the DB sleep)
+let pollTimer: ReturnType<typeof setInterval> | null = null;
+let pollCount = 0;
+let lastActivity = Date.now();
+for (const ev of ['pointerdown', 'keydown', 'visibilitychange']) window.addEventListener(ev, () => (lastActivity = Date.now()), { passive: true });
+
+async function pollOnce() {
+  if (document.hidden || flushing || Date.now() - lastActivity > IDLE_STOP_MS) return;
+  try {
+    const [floor, open] = await Promise.all([api('GET', '/floor'), api<Order[]>('GET', '/orders?status=OPEN,BILLED')]);
+    await meta.set('floor', floor);
+    const serverIds = new Set(open.map((o) => o.id));
+    for (const o of open) {
+      const local = await db.orders.get(o.id);
+      if (local?._local) continue; // never clobber unsynced local edits
+      if (!local || local.version !== o.version || local.status !== o.status) await db.orders.put({ ...o, _local: false });
+    }
+    // orders another terminal settled / cancelled since we last looked
+    const gone = await db.orders.filter((o) => !o._local && (o.status === 'OPEN' || o.status === 'BILLED') && !serverIds.has(o.id)).primaryKeys();
+    for (const id of gone) await refreshOrder(id);
+    if (++pollCount % 24 === 0) await refreshMenu(); // ~every 2 minutes
+    if (!useSync.getState().online) {
+      useSync.getState().set({ online: true });
+      void flush();
+    }
+  } catch (e) {
+    if (e instanceof OfflineError) useSync.getState().set({ online: false });
+  }
+}
+
 export function connectSocket() {
   const { token } = useAuth.getState();
   if (!token) return;
+  if (REALTIME === 'poll') {
+    if (!pollTimer) pollTimer = setInterval(() => void pollOnce(), POLL_MS);
+    return;
+  }
   if (socket) socket.disconnect();
   socket = io(import.meta.env.VITE_API_URL ?? '/', { path: '/ws', auth: { token }, transports: ['websocket', 'polling'] });
   socket.on('connect', () => {
@@ -203,6 +243,8 @@ export function connectSocket() {
 export function disconnectSocket() {
   socket?.disconnect();
   socket = null;
+  if (pollTimer) clearInterval(pollTimer);
+  pollTimer = null;
 }
 
 // browser online/offline hints

@@ -4,7 +4,13 @@ import path from 'path';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
+// Set by scripts/vercel-build.js from the restaurant config; falls back for local dev.
+const APP_NAME = process.env.APP_NAME ?? 'Restaurant POS';
+// Vercel functions can't hold WebSockets → the POS polls instead.
+const REALTIME = process.env.VITE_REALTIME ?? (process.env.VERCEL ? 'poll' : 'socket');
+
 export default defineConfig({
+  define: { 'import.meta.env.VITE_REALTIME': JSON.stringify(REALTIME) },
   plugins: [
     react(),
     tailwindcss(),
@@ -12,8 +18,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['icon.svg'],
       manifest: {
-        name: 'RMS POS',
-        short_name: 'RMS POS',
+        name: `${APP_NAME} POS`,
+        short_name: APP_NAME.split(' ')[0] + ' POS',
         description: 'Restaurant point of sale — offline capable',
         theme_color: '#0f172a',
         background_color: '#0f172a',

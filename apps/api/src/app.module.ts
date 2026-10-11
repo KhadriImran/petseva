@@ -14,15 +14,18 @@ import { RealtimeModule } from './realtime/realtime.gateway';
 import { ReportsModule } from './reports/reports.module';
 import { SyncModule } from './sync/sync.module';
 
+/** On Vercel each request is a short-lived function: no WebSocket server (the POS polls instead). */
+const SERVERLESS = !!process.env.VERCEL;
+
 @Controller()
 class HealthController {
   @Public() @Get('health') health() {
-    return { ok: true, time: new Date().toISOString() };
+    return { ok: true, time: new Date().toISOString(), realtime: SERVERLESS ? 'poll' : 'socket' };
   }
 }
 
 @Module({
-  imports: [DbModule, CommonModule, PrintModule, AuthModule, OutletsModule, MenuModule, FloorModule, OrdersModule, SyncModule, RealtimeModule, CustomersModule, ReportsModule],
+  imports: [DbModule, CommonModule, PrintModule, AuthModule, OutletsModule, MenuModule, FloorModule, OrdersModule, SyncModule, ...(SERVERLESS ? [] : [RealtimeModule]), CustomersModule, ReportsModule],
   controllers: [HealthController],
   providers: [{ provide: APP_GUARD, useClass: AuthGuard }],
 })

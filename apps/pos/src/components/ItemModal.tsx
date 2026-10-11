@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { cn, inr } from '../lib/format';
+import { cn, inr, menuPrice } from '../lib/format';
 import type { Menu, MenuItem } from '../lib/types';
 import { Button, Input, Modal } from './ui';
 
@@ -24,9 +24,12 @@ export function ItemModal({ item, menu, initial, onClose, onAdd }: { item: MenuI
   const [addonIds, setAddons] = useState<string[]>([]);
   const [qty, setQty] = useState(1);
   const [note, setNote] = useState('');
+  /** rupees typed for APS items (menu price 0) */
+  const [aps, setAps] = useState('');
   useEffect(() => {
     if (!item) return;
     setVar(initial?.variationId ?? item.variations.find((v) => v.isDefault)?.id ?? item.variations[0]?.id ?? null);
+    setAps(initial && initial.unitPrice > 0 ? String(initial.unitPrice / 100) : '');
     setAddons(initial?.addons.map((a) => a.id) ?? []);
     setQty(initial?.qty ?? 1);
     setNote(initial?.note ?? '');
@@ -35,7 +38,11 @@ export function ItemModal({ item, menu, initial, onClose, onAdd }: { item: MenuI
   const groups = menu.addonGroups.filter((g) => item.addonGroupIds.includes(g.id));
   const v = item.variations.find((x) => x.id === variationId);
   const addons = groups.flatMap((g) => g.addons).filter((a) => addonIds.includes(a.id));
-  const unit = (v?.price ?? item.price) + addons.reduce((s, a) => s + a.price, 0);
+  const listPrice = v?.price ?? item.price;
+  const isAps = listPrice === 0;
+  const apsPaise = Math.round(Number(aps) * 100);
+  const basePrice = isAps ? (Number.isFinite(apsPaise) && apsPaise > 0 ? apsPaise : 0) : listPrice;
+  const unit = basePrice + addons.reduce((s, a) => s + a.price, 0);
   const toggle = (gid: string, aid: string, max: number) => {
     const g = groups.find((x) => x.id === gid)!;
     const inGroup = addonIds.filter((id) => g.addons.some((a) => a.id === id));
@@ -45,12 +52,13 @@ export function ItemModal({ item, menu, initial, onClose, onAdd }: { item: MenuI
     setAddons([...addonIds, aid]);
   };
   const submit = () => {
+    if (isAps && basePrice <= 0) return;
     onAdd({
       itemId: item.id,
       name: item.name,
       variationId: v?.id ?? null,
       variationName: v?.name ?? null,
-      unitPrice: v?.price ?? item.price,
+      unitPrice: basePrice,
       addons: addons.map((a) => ({ id: a.id, name: a.name, price: a.price })),
       qty,
       note,
@@ -76,7 +84,7 @@ export function ItemModal({ item, menu, initial, onClose, onAdd }: { item: MenuI
               +
             </Button>
           </div>
-          <Button variant="primary" onClick={submit} autoFocus>
+          <Button variant="primary" onClick={submit} autoFocus={!isAps} disabled={isAps && basePrice <= 0}>
             {initial ? 'Update' : 'Add'} · {inr(unit * qty)}
           </Button>
         </>
@@ -88,10 +96,26 @@ export function ItemModal({ item, menu, initial, onClose, onAdd }: { item: MenuI
           <div className="flex flex-wrap gap-2">
             {item.variations.map((x) => (
               <button key={x.id} onClick={() => setVar(x.id)} className={cn('rounded-lg border px-3 py-2 text-sm', variationId === x.id ? 'border-brand-500 bg-brand-500/10 text-brand-400' : 'border-slate-700 hover:border-slate-500')}>
-                {x.name} <span className="ml-1 text-xs opacity-70">{inr(x.price)}</span>
+                {x.name} <span className="ml-1 text-xs opacity-70">{menuPrice(x.price)}</span>
               </button>
             ))}
           </div>
+        </div>
+      )}
+      {isAps && (
+        <div className="mb-4">
+          <div className="mb-2 text-xs font-semibold uppercase text-amber-400">Today's price (APS) — per plate, ₹</div>
+          <Input
+            type="number"
+            inputMode="decimal"
+            min={1}
+            value={aps}
+            onChange={(e) => setAps(e.target.value)}
+            placeholder="e.g. 350"
+            autoFocus
+            onKeyDown={(e) => e.key === 'Enter' && submit()}
+            className="text-lg font-semibold"
+          />
         </div>
       )}
       {groups.map((g) => (

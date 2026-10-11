@@ -1,141 +1,90 @@
-You are a senior full-stack engineer. Build a cloud-based Restaurant Management System (RMS) whose core is a fast, reliable Point of Sale (POS), surrounded by modules for menu, inventory, online orders, reporting, and customers. It must work for a single outlet first, but the data model must support multi-outlet chains from day one. Prioritize billing speed and offline resilience — a cashier should be able to punch an order and print a bill in ~3 clicks, even if the internet drops.
-Suggested stack (change if you like)
+# Restaurant POS — Tukaram Bar & Restaurant
 
-* Frontend: React + TypeScript, Tailwind, a component lib (shadcn/ui). PWA-capable for offline billing.
-* Backend: Node.js (NestJS or Express) + REST/GraphQL API.
-* DB: PostgreSQL (transactional data) + Redis (sessions, live order queue).
-* Realtime: WebSockets (order/KDS updates).
-* Auth: JWT + role-based access control.
-* Print: ESC/POS thermal-printer support (bill + KOT).
+A Petpooja-style point of sale for **Tukaram Bar & Restaurant**, Karaswada, Mapusa, Goa.
+Tables → order → KOT to kitchen/bar → bill → payment (Cash / UPI / Card / split) → printed receipt.
+It keeps working when the internet drops, and catches up when it comes back.
 
-Core Modules
-1. POS / Billing (highest priority)
+Set up for Tukaram:
 
-* Table & floor management: define areas (AC, non-AC, garden), tables per area, live status (free / running / billed / reserved). Visual floor plan.
-* Order types: Dine-in, Takeaway, Delivery.
-* Fast order entry: search/tap menu items, quantity, variations (half/full, size), add-ons/modifiers, item-level notes ("no onion").
-* KOT (Kitchen Order Ticket): auto-generate and route KOTs to the correct kitchen/section printer or KDS. Support KOT edits, cancellations (with reason), and reprints.
-* Billing actions: apply discounts (% or flat, item or bill level), coupons, service charge, and taxes (GST: CGST/SGST split, configurable slabs per item).
-* Split & merge: split a bill by item or by amount; merge tables; transfer items between tables.
-* Payments: multiple modes (cash, card, UPI, wallet), part payments, and settlement on a single screen. Round-off handling.
-* Bill output: print/preview thermal receipt; email/SMS bill option.
-* Offline mode: queue orders and bills locally, sync to server when connection returns; no lost transactions.
+- **Ground Floor** G1–G8 and **First Floor** F1–F15, plus Takeaway and Delivery
+- Full menu from the printed cards: fish thalis, fish fry (Rawa / Tawa / Masala / Recheado / Golden), chicken, beverages, beer, whisky, vodka, rum, feni, wine
+- **APS items** (fish at market price): menu price ₹0 means the POS asks for today's price when the item is added
+- Kitchen items print on the **KITCHEN** KOT, drinks on the **BAR** KOT
+- Prices are final (GST included). Food is on GST 5%, liquor has no GST. Change it in **Settings** / **Menu**.
+- The receipt shows the name, address, "FRESH FISH & HOME FOOD" and the Instagram handle
 
-2. Menu Management
+## Put it online on Vercel (one time, about 15 minutes)
 
-* Categories → items → variations → add-on groups.
-* Per-item: price(s), tax slab, food type (veg/non-veg/egg), packaging charge, availability toggle, stock-out toggle.
-* Time-based menus (breakfast/lunch), outlet-specific pricing, and separate online menu pricing.
-* Bulk import/export (CSV).
+You need a GitHub account and a Vercel account (sign up at vercel.com with GitHub).
 
-3. Inventory & Recipe Management
+1. **Push this folder to GitHub** (your repo).
+2. **Vercel → Add New → Project →** import the repo. Leave every setting as it is; `vercel.json` already sets the build.
+   Before clicking Deploy, open **Environment Variables** and add:
 
-* Raw material master with units and reorder levels.
-* Recipe mapping: link menu items to raw-material quantities so stock auto-deducts on each sale.
-* Low-stock alerts, wastage/spoilage entry, stock transfers between outlets.
-* Day-end inventory report and variance (expected vs. actual).
+   | Name | Value |
+   |------|-------|
+   | `JWT_SECRET` | a long random string (40+ characters; keep it secret) |
+   | `SEED_OWNER_PASSWORD` | the first password for the `owner` login (8+ characters) |
+   | `SEED_OWNER_PIN` | optional: 4-digit owner PIN for approving voids/discounts |
+   | `RESTAURANT` | `tukaram` |
 
-4. Purchase Management
+3. Click **Deploy**. The first deploy will say *"DATABASE_URL is not set"*. That is expected.
+4. **Project → Storage → Create Database → Neon (Postgres)**, free plan, region **Mumbai** (or Singapore),
+   and connect it to the project. This adds `DATABASE_URL` automatically.
+5. **Deployments → ⋯ → Redeploy.** This build creates the tables and sets up Tukaram's menu and tables.
+6. Open the site, sign in as **`owner`** with your `SEED_OWNER_PASSWORD`, and go to **Staff** to add waiters
+   (Captain role), cashier and manager. Change the owner password there too.
 
-* Vendor master, purchase orders, goods-received notes, purchase bills.
-* Auto-update inventory on receipt; track vendor-wise spend and payables.
+Every later `git push` redeploys automatically. Your data stays in the Neon database, and menu or price changes
+made in the POS are kept.
 
-5. Online Order Aggregation
+### Using it in the restaurant
 
-* Unified screen to receive and manage orders from delivery aggregators (e.g., Swiggy, Zomato) and the restaurant's own online channel.
-* Accept/reject, mark food-ready, track rider/pickup, and reconcile payouts.
-* Menu sync so online and in-store menus stay consistent.
-* Design the integration layer as pluggable adapters (each aggregator behind a common interface) so real APIs can be added later; ship with a mock adapter for development.
+- Open the site in **Chrome** on the counter PC / tablet. Use *Install app* (address bar icon) so it opens like an app.
+- **Printing:** connect the 80 mm thermal printer to the counter PC (USB) and set it as the default printer.
+  Bills and KOTs open the print dialog. To print with no dialog, start Chrome with `--kiosk-printing`.
+- Waiters can use their phones: open the same site, sign in, take orders at the table. Other screens update within ~5 s.
+- Internet down? Keep billing. Orders are saved on the device and sent when the connection returns
+  (the top bar shows *Offline* and a count).
 
-6. Reports & Analytics
+### Cost and limits
 
-* Real-time dashboard: today's sales, order count, average order value, top items.
-* Reports: day-end sales, item-wise, category-wise, time-slot-wise, order-type, payment-mode, tax summary, discount summary, cancelled/void orders, staff performance, inventory consumption.
-* Date-range filters, outlet filter, CSV/PDF export.
+- **Vercel Hobby (free) is for non-commercial use only.** A restaurant is a business, so use **Vercel Pro**
+  (about $20/month per team; one team can hold all your hotels).
+- **Neon free plan** is enough for one restaurant. The POS stops polling after 20 minutes without use,
+  so the database can sleep at night.
 
-7. CRM & Loyalty
+## Adding the next hotel
 
-* Customer profiles auto-created from phone number at billing; order history and spend.
-* Loyalty points / wallet, feedback capture, and basic SMS/WhatsApp campaign triggers (behind a pluggable messaging adapter + mock).
+1. Copy `apps/api/src/restaurants/tukaram.ts` to e.g. `shetty.ts`. Change name, address, floors/tables, menu.
+2. Add it to `apps/api/src/restaurants/index.ts`.
+3. In Vercel create a **new project from the same repo** with `RESTAURANT=shetty`, its own `JWT_SECRET`,
+   `SEED_OWNER_PASSWORD`, and its **own Neon database**. Each hotel's data stays fully separate.
 
-8. Add-on surfaces (build after core is stable)
-
-* Kitchen Display System (KDS): live ticket board for kitchen; bump/recall tickets; per-station views; prep timers.
-* Captain Ordering App: waiter takes orders tableside on a phone/tablet; pushes straight to KOT/POS.
-* Scan & Order (QR): customer scans a table QR, browses menu, orders, and optionally pays; order lands in POS.
-
-9. Admin, Users & Settings
-
-* Roles: Owner, Manager, Cashier, Captain, Kitchen — each with granular permissions (e.g., cashier can't give discounts above X%, can't void without manager PIN).
-* Outlet settings: taxes, charges, printers, receipt template, business hours.
-* Audit log of sensitive actions (voids, discounts, price changes, refunds).
-
-Data Model (starter entities)
-`Outlet`, `User`/`Role`/`Permission`, `Table`/`Area`, `MenuCategory`, `MenuItem`, `Variation`, `AddonGroup`/`Addon`, `TaxSlab`, `RawMaterial`, `Recipe`/`RecipeItem`, `Vendor`, `PurchaseOrder`, `Order`, `OrderItem`, `KOT`, `Bill`, `Payment`, `Discount`, `Customer`, `LoyaltyTransaction`, `OnlineOrder`, `StockMovement`, `AuditLog`.
-Every business record carries an `outlet_id` (and optionally `brand_id`) for multi-outlet scaling.
-Non-functional requirements
-
-* Billing screen interactions must feel instant (optimistic UI, keyboard shortcuts).
-* Offline-first for the POS terminal; conflict-free sync on reconnect.
-* Money handled in integer minor units; never floats. Rounding rules configurable.
-* Tax logic isolated and unit-tested (GST inclusive/exclusive, item vs. bill level).
-* Concurrency-safe: two waiters editing the same table must not corrupt an order.
-* Seed data + a demo mode so the app is explorable without setup.
-
-Build order (phased)
-
-1. Phase 1 — POS core: outlets, users/roles, menu, table management, order entry, KOT, billing, payments, thermal print, offline sync.
-2. Phase 2 — Back office: inventory + recipes + auto-deduct, purchase, reports/analytics dashboard.
-3. Phase 3 — Growth: online-order aggregation (mock adapters), CRM + loyalty, KDS.
-4. Phase 4 — Extras: captain app, scan-&-order QR, campaigns, multi-outlet consolidation reports.
-
-Deliverables
-
-* Runnable monorepo (frontend + backend + DB migrations + seed script).
-* README with setup, env vars, and demo login.
-* API docs (OpenAPI/Swagger).
-* Basic test coverage on tax, billing, and inventory-deduction logic.
-
-Start with Phase 1 only. Scaffold the repo, set up the schema and migrations, then build the POS billing flow end-to-end (menu → table → order → KOT → bill → payment → print) before moving on. Ask me before assuming any aggregator or payment-gateway credentials.
-# RMS — Restaurant Management System (Phase 1: POS core)
-
-Cloud-based RMS whose core is a fast, **offline-first Point of Sale**. Phase 1 ships the complete billing
-flow — menu → table → order → KOT → bill → payment → thermal print — with multi-outlet data model,
-role-based access, manager-PIN overrides, audit log and an idempotent offline sync engine.
-
-```
-rms/
-├─ apps/api        NestJS 11 + Drizzle ORM + PostgreSQL  (REST + Socket.IO, Swagger at /api/docs)
-├─ apps/pos        React 19 + TypeScript + Tailwind v4 PWA (Vite, Dexie/IndexedDB offline mirror)
-├─ packages/shared money / GST / billing engine, ESC-POS builder, receipt + KOT templates, RBAC map
-└─ docker-compose.yml   optional Postgres + Redis (embedded Postgres is the default, no Docker needed)
-```
-
-## Quick start (no Docker required)
+## Run it on your PC (for testing)
 
 ```bash
-npm run setup      # installs deps, creates apps/api/.env, boots embedded PostgreSQL, migrates, seeds demo data
-npm run dev        # API on http://localhost:4000  •  POS on http://localhost:5173
+npm run setup      # first time: installs, creates apps/api/.env, local database, Tukaram data
+npm run dev        # POS on http://localhost:5173
 ```
 
-> First run downloads a PostgreSQL 17 binary (~30 MB) into `apps/api/.pgdata` via `embedded-postgres`.
-> Prefer your own Postgres / Docker? `docker compose up -d`, then set `DB_EMBEDDED=false` and
-> `DATABASE_URL=postgresql://rms:rms@localhost:5432/rms` in `apps/api/.env`.
+Local login: `owner` / `tukaram-local-1` (from `apps/api/.env`). For the demo cafe with sample staff
+(`owner/owner123`, `cashier/cashier123`, …) set `RESTAURANT=demo` in `apps/api/.env` and run `npm run db:reset`;
+build the POS with `VITE_DEMO=true` to show one-click demo logins.
 
-Open the POS, click **Cashier** on the login screen, tap a table, tap items, press **F8** (KOT) or **F10** (Pay).
+## How the code is laid out
 
-### Demo logins
+```
+apps/api                  NestJS API + PostgreSQL (Drizzle). Runs as one Vercel function (api/index.js)
+apps/api/src/restaurants  one file per hotel (menu, tables, settings)
+apps/pos                  React POS (offline-capable PWA), served as static files
+packages/shared           money / GST / bill maths, receipt + KOT layout
+scripts/vercel-build.js   what Vercel runs: build → migrate DB → set up restaurant → build POS
+```
 
-| Role     | Username  | Password     | PIN  | Notes                                                   |
-|----------|-----------|--------------|------|---------------------------------------------------------|
-| Owner    | `owner`   | `owner123`   | 1234 | everything                                              |
-| Manager  | `manager` | `manager123` | 1111 | everything except user management; PIN approves overrides |
-| Cashier  | `cashier` | `cashier123` | —    | billing; discounts capped at 10%; can't void sent items |
-| Captain  | `captain` | `captain123` | —    | order entry + KOT only                                  |
-| Kitchen  | `kitchen` | `kitchen123` | —    | KDS view (Phase 3)                                      |
+---
 
-Demo outlet **"Demo Cafe Goa"** — 3 areas / 18 tables, 7 categories (incl. a time-boxed Breakfast menu),
-variations (Half/Full), add-on groups, 3 kitchen stations (KITCHEN / TANDOOR / BAR), 4 GST slabs.
+# Technical reference
 
 ## Scripts
 
@@ -148,7 +97,7 @@ variations (Half/Full), add-on groups, 3 kitchen stations (KITCHEN / TANDOOR / B
 | `npm test`             | unit tests: tax/billing engine (vitest) + server billing pipeline (jest)       |
 | `npm run smoke`        | end-to-end HTTP smoke test against a running API (48 assertions, see below)   |
 | `npm run db:migrate`   | apply SQL migrations in `apps/api/drizzle/`                                   |
-| `npm run db:seed`      | seed demo outlet (idempotent)                                                 |
+| `npm run db:seed`      | create the restaurant from `RESTAURANT` (idempotent)                          |
 | `npm run db:reset`     | drop everything, migrate, seed                                                |
 | `npm run db:start`     | just hold the embedded Postgres up (e.g. for `psql` / Drizzle Studio)         |
 | `npm run db:generate -w @rms/api` | generate a new migration after editing `src/db/schema.ts`          |
@@ -162,7 +111,10 @@ variations (Half/Full), add-on groups, 3 kitchen stations (KITCHEN / TANDOOR / B
 | `REDIS_URL`      | *(empty)*                                      | optional; Phase 1 uses an in-process event bus             |
 | `JWT_SECRET`     | change-me                                      | **change in production**                                   |
 | `JWT_EXPIRES_IN` | `12h`                                          | POS session length                                         |
-| `PORT`           | `4000`                                         |                                                            |
+| `API_PORT`       | `4000`                                         | local API port                                             |
+| `RESTAURANT`     | `tukaram`                                      | which file in `apps/api/src/restaurants/` to set up        |
+| `SEED_OWNER_PASSWORD` | —                                         | first password of user `owner` (first setup only)          |
+| `SEED_OWNER_PIN` | —                                              | optional owner approval PIN                                |
 | `CORS_ORIGIN`    | `http://localhost:5173`                        | comma-separated                                            |
 | `PRINT_DRY_RUN`  | `true`                                         | `false` → send ESC/POS to the network printers in Settings |
 

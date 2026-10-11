@@ -1,8 +1,9 @@
-import { Body, Controller, Get, Inject, Injectable, Module, NotFoundException, Patch, Post, Delete, Param } from '@nestjs/common';
+import { BadRequestException, Body, ConflictException, Controller, Delete, Get, Inject, Injectable, Module, NotFoundException, Param, Patch, Post } from '@nestjs/common';
+import bcrypt from 'bcryptjs';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { and, eq } from 'drizzle-orm';
-import { DEFAULT_OUTLET_SETTINGS, OutletSettings } from '@rms/shared';
-import { Actor, CurrentUser, RequirePerms } from '../common/auth';
+import { DEFAULT_OUTLET_SETTINGS, OutletSettings, RoleName, ROLES } from '@rms/shared';
+import { Actor, CurrentUser, Public, RequirePerms } from '../common/auth';
 import { AuditService } from '../common/audit.service';
 import { DB } from '../common/db.module';
 import { Db } from '../db/client';
@@ -56,12 +57,71 @@ export class OutletsService {
     return { ok: true };
   }
 
-  listUsers(outletId: string) {
-    return this.db
-      .select({ id: users.id, name: users.name, username: users.username, role: users.role, active: users.active, hasPin: users.pinHash })
+  async listUsers(outletId: string) {
+    const rows = await this.db
+      .select({ id: users.id, name: users.name, username: users.username, role: users.role, active: users.active, pinHash: users.pinHash })
       .from(users)
-      .where(eq(users.outletId, outletId));
+      .where(eq(users.outletId, outletId))
+      .orderBy(users.createdAt);
+    return rows.map(({ pinHash, ...u }) => ({ ...u, hasPin: !!pinHash }));
   }
+
+  /** Name + address shown on the login screen before anyone signs in. */
+  async publicInfo() {
+    const o = await this.db.query.outlets.findFirst({ where: eq(outlets.active, true), orderBy: outlets.createdAt });
+    return o ? { name: o.name, addressLines: o.addressLines } : { name: 'Restaurant POS', addressLines: [] };
+  }
+
+  async createUser(actor: Actor, body: { name?: string; username?: string; password?: string; pin?: string; role?: RoleName }) {
+    const name = body.name?.trim();
+    const username = body.username?.trim().toLowerCase();
+    if (!name || !username) throw new BadRequestException('Name and username are required');
+    if (!/^[a-z0-9._-]{3,30}$/.test(username)) throw new BadRequestException('Username: 3–30 letters/numbers, no spaces');
+    checkPassword(body.password);
+    checkPin(body.pin);
+    if (!body.role || !ROLES.includes(body.role)) throw new BadRequestException('Pick a role');
+    const taken = await this.db.query.users.findFirst({ where: eq(users.username, username) });
+    if (taken) throw new ConflictException(`Username "${username}" is already taken`);
+    const [row] = await this.db
+      .insert(users)
+      .values({ outletId: actor.outletId, name, username, role: body.role, passwordHash: await bcrypt.hash(body.password!, 10), pinHash: body.pin ? await bcrypt.hash(body.pin, 10) : null })
+      .returning({ id: users.id });
+    await this.audit.log(this.db, actor, 'USER_CREATE', 'user', row.id, { username, role: body.role });
+    return { id: row.id };
+  }
+
+  async updateUser(actor: Actor, id: string, body: { name?: string; password?: string; pin?: string | null; role?: RoleName; active?: boolean }) {
+    const u = await this.db.query.users.findFirst({ where: and(eq(users.id, id), eq(users.outletId, actor.outletId)) });
+    if (!u) throw new NotFoundException('User not found');
+    if (id === actor.id && (body.active === false || (body.role && body.role !== u.role))) throw new BadRequestException("You can't deactivate or change the role of your own account");
+    const patch: Partial<typeof users.$inferInsert> = {};
+    if (body.name?.trim()) patch.name = body.name.trim();
+    if (body.role) {
+      if (!ROLES.includes(body.role)) throw new BadRequestException('Unknown role');
+      patch.role = body.role;
+    }
+    if (body.active !== undefined) patch.active = !!body.active;
+    if (body.password) {
+      checkPassword(body.password);
+      patch.passwordHash = await bcrypt.hash(body.password, 10);
+    }
+    if (body.pin === null || body.pin === '') patch.pinHash = null;
+    else if (body.pin) {
+      checkPin(body.pin);
+      patch.pinHash = await bcrypt.hash(body.pin, 10);
+    }
+    if (!Object.keys(patch).length) return { ok: true };
+    await this.db.update(users).set(patch).where(eq(users.id, id));
+    await this.audit.log(this.db, actor, 'USER_UPDATE', 'user', id, { username: u.username, changed: Object.keys(patch).map((k) => k.replace('Hash', '')) });
+    return { ok: true };
+  }
+}
+
+function checkPassword(p?: string) {
+  if (!p || p.length < 6) throw new BadRequestException('Password must be at least 6 characters');
+}
+function checkPin(pin?: string | null) {
+  if (pin && !/^\d{4,6}$/.test(pin)) throw new BadRequestException('PIN must be 4–6 digits');
 }
 
 @ApiTags('outlets')
@@ -87,6 +147,15 @@ export class OutletsController {
   }
   @Get('me/users') @RequirePerms('users.manage') users(@CurrentUser() u: Actor) {
     return this.svc.listUsers(u.outletId);
+  }
+  @Post('me/users') @RequirePerms('users.manage') createUser(@CurrentUser() u: Actor, @Body() body: any) {
+    return this.svc.createUser(u, body);
+  }
+  @Patch('me/users/:id') @RequirePerms('users.manage') updateUser(@CurrentUser() u: Actor, @Param('id') id: string, @Body() body: any) {
+    return this.svc.updateUser(u, id, body);
+  }
+  @Public() @Get('public') publicInfo() {
+    return this.svc.publicInfo();
   }
 }
 

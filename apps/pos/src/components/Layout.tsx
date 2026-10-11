@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { BarChart3, CloudOff, LayoutGrid, ListOrdered, LogOut, RefreshCw, Settings, ShieldCheck, Utensils, Wifi } from 'lucide-react';
-import { type ReactNode } from 'react';
+import { BarChart3, CloudOff, LayoutGrid, ListOrdered, LogOut, RefreshCw, Settings, ShieldCheck, Users, Utensils, Wifi } from 'lucide-react';
+import { type ReactNode, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { cache } from '../lib/db';
 import { cn } from '../lib/format';
@@ -11,21 +11,24 @@ export default function Layout({ children }: { children: ReactNode }) {
   const { user, logout, can, overrideBy } = useAuth();
   const { online, pending, rejected, syncing } = useSync();
   const outlet = useLiveQuery(() => cache.outlet());
+  useEffect(() => {
+    if (outlet?.name) document.title = `${outlet.name} POS`;
+  }, [outlet?.name]);
   const nav = [
     { to: '/', icon: LayoutGrid, label: 'Tables', show: true },
     { to: '/orders', icon: ListOrdered, label: 'Orders', show: true },
     { to: '/reports', icon: BarChart3, label: 'Today', show: can('reports.read') },
     { to: '/admin/menu', icon: Utensils, label: 'Menu', show: can('menu.write') },
     { to: '/admin/tables', icon: LayoutGrid, label: 'Floor', show: can('tables.write') },
+    { to: '/admin/staff', icon: Users, label: 'Staff', show: can('users.manage') },
     { to: '/admin/settings', icon: Settings, label: 'Settings', show: can('settings.write') },
   ];
   return (
     <div className="flex h-full flex-col">
       <header className="no-print flex h-12 shrink-0 items-center gap-3 border-b border-slate-800 bg-slate-900 px-3">
-        <div className="mr-2 font-bold tracking-tight">
-          <span className="text-brand-500">RMS</span> POS
+        <div className="mr-2 truncate font-bold tracking-tight">
+          <span className="text-brand-500">{outlet?.name ?? 'Restaurant'}</span> <span className="text-slate-400">POS</span>
         </div>
-        <div className="hidden text-sm text-slate-400 md:block">{outlet?.name}</div>
         <nav className="ml-4 flex items-center gap-1">
           {nav
             .filter((n) => n.show)
