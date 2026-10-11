@@ -1,5 +1,6 @@
 import {
   CanActivate,
+  Inject,
   createParamDecorator,
   ExecutionContext,
   ForbiddenException,
@@ -9,7 +10,11 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
+import { eq } from 'drizzle-orm';
 import { Permission, ROLE_PERMISSIONS, RoleName } from '@rms/shared';
+import { Db } from '../db/client';
+import { users } from '../db/schema';
+import { DB } from './db.module';
 
 export interface Actor {
   id: string;
@@ -40,12 +45,26 @@ export function hasPerm(actor: Actor, perm: Permission): boolean {
   return actor.permissions.includes(perm);
 }
 
+/** userId → (active?, checkedAt). Lets a switched-off account stop working within a minute without a DB hit per request. */
+const activeCache = new Map<string, { active: boolean; at: number }>();
+const ACTIVE_TTL_MS = 60_000;
+
 @Injectable()
 export class AuthGuard implements CanActivate {
   constructor(
     private readonly jwt: JwtService,
     private readonly reflector: Reflector,
+    @Inject(DB) private readonly db: Db,
   ) {}
+
+  private async isActive(userId: string) {
+    const hit = activeCache.get(userId);
+    if (hit && Date.now() - hit.at < ACTIVE_TTL_MS) return hit.active;
+    const u = await this.db.query.users.findFirst({ where: eq(users.id, userId), columns: { active: true } });
+    const active = !!u?.active;
+    activeCache.set(userId, { active, at: Date.now() });
+    return active;
+  }
 
   async canActivate(ctx: ExecutionContext): Promise<boolean> {
     const isPublic = this.reflector.getAllAndOverride<boolean>(PUBLIC_KEY, [ctx.getHandler(), ctx.getClass()]);
@@ -60,6 +79,7 @@ export class AuthGuard implements CanActivate {
     } catch {
       throw new UnauthorizedException('Invalid or expired token');
     }
+    if (!(await this.isActive(payload.sub))) throw new UnauthorizedException('This account has been switched off');
     const actor: Actor = {
       id: payload.sub,
       outletId: payload.outletId,

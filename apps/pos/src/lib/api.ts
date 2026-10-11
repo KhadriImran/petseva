@@ -42,7 +42,8 @@ export async function api<T = any>(method: string, path: string, body?: unknown,
   clearTimeout(t);
   const text = await res.text();
   const json = text ? safeJson(text) : null;
-  if (res.status === 401 && path !== '/auth/login') useAuth.getState().logout();
+  // 401 = session expired / account switched off → back to login. Not for a wrong password or manager PIN.
+  if (res.status === 401 && path !== '/auth/login' && path !== '/auth/override') useAuth.getState().logout();
   if (!res.ok) throw new ApiError(res.status, json);
   return json as T;
 }

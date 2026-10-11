@@ -17,7 +17,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   const nav = [
     { to: '/', icon: LayoutGrid, label: 'Tables', show: true },
     { to: '/orders', icon: ListOrdered, label: 'Orders', show: true },
-    { to: '/reports', icon: BarChart3, label: 'Today', show: can('reports.read') },
+    { to: '/reports', icon: BarChart3, label: 'Reports', show: can('reports.read') },
     { to: '/admin/menu', icon: Utensils, label: 'Menu', show: can('menu.write') },
     { to: '/admin/tables', icon: LayoutGrid, label: 'Floor', show: can('tables.write') },
     { to: '/admin/staff', icon: Users, label: 'Staff', show: can('users.manage') },

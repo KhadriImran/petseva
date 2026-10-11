@@ -5,7 +5,7 @@ import { Actor, CurrentUser, RequirePerms } from '../common/auth';
 import { AuditService } from '../common/audit.service';
 import { DB } from '../common/db.module';
 import { Db } from '../db/client';
-import { bills, orderItems, orders, payments } from '../db/schema';
+import { bills, menuCategories, menuItems, orderItems, orders, payments } from '../db/schema';
 
 /** Phase-1 slice of reporting: live "today" numbers for the POS header + audit log. Full reports arrive in Phase 2. */
 @Injectable()
@@ -40,7 +40,16 @@ export class ReportsService {
       .where(and(where, sql`${orderItems.status} <> 'VOIDED'`))
       .groupBy(orderItems.name)
       .orderBy(sql`sum(${orderItems.qty}) desc`)
-      .limit(10);
+      .limit(500);
+    const byCategory = await this.db
+      .select({ name: menuCategories.name, qty: sql<number>`sum(${orderItems.qty})`, amount: sql<number>`sum(${orderItems.qty} * ${orderItems.unitPrice})` })
+      .from(orderItems)
+      .innerJoin(bills, eq(orderItems.orderId, bills.orderId))
+      .innerJoin(menuItems, eq(orderItems.itemId, menuItems.id))
+      .innerJoin(menuCategories, eq(menuItems.categoryId, menuCategories.id))
+      .where(and(where, sql`${orderItems.status} <> 'VOIDED'`))
+      .groupBy(menuCategories.name)
+      .orderBy(sql`sum(${orderItems.qty} * ${orderItems.unitPrice}) desc`);
     const [cancelled] = await this.db
       .select({ count: sql<number>`count(*)` })
       .from(orders)
@@ -58,18 +67,20 @@ export class ReportsService {
       byMode: byMode.map((m) => ({ mode: m.mode, amount: Number(m.amount) })),
       byType: byType.map((t) => ({ type: t.type, amount: Number(t.amount), count: Number(t.count) })),
       topItems: topItems.map((t) => ({ name: t.name, qty: Number(t.qty), amount: Number(t.amount) })),
+      byCategory: byCategory.map((c) => ({ name: c.name, qty: Number(c.qty), amount: Number(c.amount) })),
       cancelledOrders: Number(cancelled.count),
     };
   }
 }
 
+const YMD = /^\d{4}-\d{2}-\d{2}$/;
+
+/** from/to as YYYY-MM-DD (whole days in India time) or full ISO timestamps; default: today. */
 function dayRange(q: any, tz = 'Asia/Kolkata') {
-  // default: today in outlet TZ
-  const now = new Date();
-  const ymd = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(now);
-  const from = q.from ? new Date(q.from) : new Date(`${ymd}T00:00:00+05:30`);
-  const to = q.to ? new Date(q.to) : new Date(`${ymd}T23:59:59.999+05:30`);
-  return { from, to };
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date());
+  const start = (v?: string) => (!v ? new Date(`${today}T00:00:00+05:30`) : YMD.test(v) ? new Date(`${v}T00:00:00+05:30`) : new Date(v));
+  const end = (v?: string) => (!v ? new Date(`${today}T23:59:59.999+05:30`) : YMD.test(v) ? new Date(`${v}T23:59:59.999+05:30`) : new Date(v));
+  return { from: start(q.from), to: end(q.to ?? (YMD.test(q.from ?? '') ? q.from : undefined)) };
 }
 
 @ApiTags('reports')

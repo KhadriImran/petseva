@@ -44,6 +44,10 @@ made in the POS are kept.
 - **Printing:** connect the 80 mm thermal printer to the counter PC (USB) and set it as the default printer.
   Bills and KOTs open the print dialog. To print with no dialog, start Chrome with `--kiosk-printing`.
 - Waiters can use their phones: open the same site, sign in, take orders at the table. Other screens update within ~5 s.
+- **Reports** (owner/manager): today, yesterday, last 7 days, this month or any dates. Shows sales, payment modes,
+  categories, every item sold. *Print summary* gives a day-end slip on the thermal printer; *Excel / CSV* downloads it.
+- **Security:** 5 wrong passwords (or manager PINs) lock that account for 10 minutes. A staff account switched off
+  on the Staff page stops working within a minute.
 - Internet down? Keep billing. Orders are saved on the device and sent when the connection returns
   (the top bar shows *Offline* and a count).
 

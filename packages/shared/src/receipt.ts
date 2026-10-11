@@ -46,7 +46,8 @@ export interface KotData {
 const rs = (p: Paise) => formatINR(p, { symbol: false });
 const fmtDate = (d: Date | string) => {
   const dt = typeof d === 'string' ? new Date(d) : d;
-  return dt.toLocaleString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  // explicit zone: on cloud servers (Vercel) the system clock is UTC, but bills must show restaurant time
+  return dt.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 };
 const ORDER_TYPE_LABEL: Record<OrderType, string> = { DINE_IN: 'Dine-in', TAKEAWAY: 'Takeaway', DELIVERY: 'Delivery' };
 
