@@ -32,7 +32,8 @@ export default function SyncPage() {
       <p className="mb-3 text-sm text-slate-400">
         While offline, every order, KOT, bill and payment is stored here and replayed in order when the connection returns. Bills printed offline carry a provisional number (OFF-…); the server assigns the real invoice number on sync.
       </p>
-      <table className="w-full text-sm">
+      <div className="scroll-thin overflow-x-auto">
+      <table className="w-full min-w-[560px] text-sm">
         <thead className="text-left text-xs uppercase text-slate-400">
           <tr>
             <th className="px-2 py-1">Time</th>
@@ -70,6 +71,7 @@ export default function SyncPage() {
           )}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

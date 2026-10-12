@@ -48,32 +48,50 @@ export default function Floor() {
   return (
     <div className="flex h-full">
       <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex items-center gap-2 border-b border-slate-800 px-3 py-2">
-          {areas.map((a) => (
-            <button
-              key={a.id}
-              onClick={() => setAreaId(a.id)}
-              className={cn('rounded-lg px-3 py-1.5 text-sm', current?.id === a.id ? 'bg-slate-700 text-white' : 'text-slate-400 hover:bg-slate-800')}
-            >
-              {a.name} <span className="ml-1 text-xs opacity-60">{a.tables.filter((t) => t.status !== 'FREE').length}/{a.tables.length}</span>
-            </button>
-          ))}
-          <div className="ml-auto flex gap-2">
-            <Button variant="outline" onClick={() => nav('/order/new?type=TAKEAWAY')}>
-              <ShoppingBag size={16} /> Takeaway
+        <div className="flex items-center gap-2 border-b border-slate-800 px-2 py-2 sm:px-3">
+          <div className="scroll-thin flex min-w-0 flex-1 gap-1 overflow-x-auto">
+            {areas.map((a) => (
+              <button
+                key={a.id}
+                onClick={() => setAreaId(a.id)}
+                className={cn('shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm', current?.id === a.id ? 'bg-slate-700 text-white' : 'text-slate-400 hover:bg-slate-800')}
+              >
+                {a.name} <span className="ml-1 text-xs opacity-60">{a.tables.filter((t) => t.status !== 'FREE').length}/{a.tables.length}</span>
+              </button>
+            ))}
+          </div>
+          <div className="flex shrink-0 gap-2">
+            <Button variant="outline" onClick={() => nav('/order/new?type=TAKEAWAY')} className="px-3" title="Takeaway">
+              <ShoppingBag size={16} /> <span className="hidden sm:inline">Takeaway</span>
             </Button>
-            <Button variant="outline" onClick={() => nav('/order/new?type=DELIVERY')}>
-              <Bike size={16} /> Delivery
+            <Button variant="outline" onClick={() => nav('/order/new?type=DELIVERY')} className="px-3" title="Delivery">
+              <Bike size={16} /> <span className="hidden sm:inline">Delivery</span>
             </Button>
           </div>
         </div>
-        <div className="scroll-thin grid flex-1 auto-rows-min grid-cols-2 gap-3 overflow-y-auto p-3 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6">
+        {/* phones / tablets: open parcels as a strip (desktop has the side panel) */}
+        {parked.length > 0 && (
+          <div className="scroll-thin flex gap-2 overflow-x-auto border-b border-slate-800 px-2 py-2 lg:hidden">
+            {parked.map((o) => (
+              <button key={o.id} onClick={() => nav(`/order/${o.id}`)} className="shrink-0 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-left text-xs">
+                <div className="font-semibold">
+                  {o.type === 'TAKEAWAY' ? <ShoppingBag size={12} className="mr-1 inline" /> : <Bike size={12} className="mr-1 inline" />}
+                  {o.orderNumber}
+                </div>
+                <div className={o.status === 'BILLED' ? 'text-sky-300' : 'text-amber-300'}>
+                  {o.customerName ?? o.status} · {timeAgo(o.createdAt)}
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+        <div className="scroll-thin grid flex-1 auto-rows-min grid-cols-2 gap-2 overflow-y-auto p-2 sm:grid-cols-3 sm:gap-3 sm:p-3 md:grid-cols-4 xl:grid-cols-6">
           {current?.tables.map((t) => (
             <button
               key={t.id}
               onClick={() => open(t)}
               className={cn(
-                'flex h-28 flex-col justify-between rounded-xl border p-3 text-left transition active:scale-[0.98]',
+                'flex h-24 flex-col justify-between rounded-xl border p-3 text-left sm:h-28 transition active:scale-[0.98]',
                 t.status === 'FREE' && 'border-slate-700 bg-slate-900 hover:border-slate-500',
                 t.status === 'RUNNING' && 'border-amber-500/60 bg-amber-950/40 hover:bg-amber-950/60',
                 t.status === 'BILLED' && 'border-sky-500/60 bg-sky-950/40 hover:bg-sky-950/60',

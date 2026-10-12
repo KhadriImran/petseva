@@ -1,6 +1,6 @@
 import { computeBill, VOID_REASONS } from '@rms/shared';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { ArrowLeftRight, ChefHat, MoreHorizontal, Receipt, Search, Trash2, Wallet } from 'lucide-react';
+import { ArrowLeft, ArrowLeftRight, ChefHat, ChevronRight, MoreHorizontal, Plus, Receipt, Search, Trash2, Wallet } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { BillModal } from '../components/BillModal';
@@ -44,6 +44,8 @@ export default function OrderPage() {
   const [receipt, setReceipt] = useState<string | null>(null);
   const [pinFor, setPinFor] = useState<null | (() => void)>(null);
   const [busy, setBusy] = useState(false);
+  /** phones show one panel at a time: the menu, or the order (cart). lg+ shows both side by side. */
+  const [pane, setPane] = useState<'menu' | 'cart'>(rawId === 'new' ? 'menu' : 'cart');
   const [covers, setCovers] = useState(2);
   const [phone, setPhone] = useState('');
   const [custName, setCustName] = useState('');
@@ -212,20 +214,26 @@ export default function OrderPage() {
   const locked = order?.status === 'SETTLED' || order?.status === 'CANCELLED';
   const title = order ? `${order.orderNumber}${order.tableName ? ` · ${order.tableName}` : ''}` : type === 'DINE_IN' ? `New · ${table?.name ?? '?'}` : `New ${type === 'TAKEAWAY' ? 'takeaway' : 'delivery'}`;
 
+  const itemCount = live.reduce((n, i) => n + i.qty, 0) + draft.reduce((n, l) => n + l.qty, 0);
+
   return (
     <div className="flex h-full">
       {/* ------------------------------------------------ menu */}
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className={cn('flex min-w-0 flex-1 flex-col', pane === 'cart' && 'hidden lg:flex')}>
         <div className="flex items-center gap-2 border-b border-slate-800 p-2">
+          <button onClick={() => nav('/')} className="shrink-0 rounded-lg p-2 text-slate-300 hover:bg-slate-800 lg:hidden" title="Back to tables">
+            <ArrowLeft size={20} />
+          </button>
           <div className="relative flex-1">
             <Search size={16} className="absolute left-3 top-3 text-slate-500" />
             <Input
               ref={searchRef}
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Search item or short code…  (F2 or /)"
+              placeholder="Search item or code…"
               className="pl-9"
-              autoFocus
+              // no auto-focus on phones: it would pop the keyboard over the menu
+              autoFocus={window.matchMedia('(min-width: 1024px)').matches}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && items[0]) tapItem(items[0]);
               }}
@@ -262,11 +270,26 @@ export default function OrderPage() {
           ))}
           {items.length === 0 && <div className="col-span-full p-6 text-center text-sm text-slate-500">No items</div>}
         </div>
+        {/* phone: jump to the order */}
+        <div className="border-t border-slate-800 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] lg:hidden">
+          <Button variant={draft.length ? 'primary' : 'secondary'} size="lg" className="w-full justify-between" onClick={() => setPane('cart')}>
+            <span>
+              View order · {itemCount} item{itemCount === 1 ? '' : 's'}
+              {draft.length > 0 && <span className="ml-1 font-normal opacity-80">({draft.reduce((n, l) => n + l.qty, 0)} new)</span>}
+            </span>
+            <span className="flex items-center gap-1">
+              {preview ? inr(preview.grandTotal) : ''} <ChevronRight size={18} />
+            </span>
+          </Button>
+        </div>
       </div>
 
       {/* ------------------------------------------------ cart */}
-      <div className="flex w-[380px] shrink-0 flex-col border-l border-slate-800 bg-slate-900/60">
+      <div className={cn('flex w-full shrink-0 flex-col bg-slate-900/60 lg:w-[380px] lg:border-l lg:border-slate-800', pane === 'menu' && 'hidden lg:flex')}>
         <div className="flex items-center gap-2 border-b border-slate-800 px-3 py-2">
+          <button onClick={() => nav('/')} className="-ml-1 shrink-0 rounded-lg p-1.5 text-slate-300 hover:bg-slate-800 lg:hidden" title="Back to tables">
+            <ArrowLeft size={20} />
+          </button>
           <div className="min-w-0 flex-1">
             <div className="truncate font-semibold">{title}</div>
             <div className="text-xs text-slate-400">
@@ -280,6 +303,11 @@ export default function OrderPage() {
               )}
             </div>
           </div>
+          {!locked && (
+            <Button size="sm" variant="outline" onClick={() => setPane('menu')} className="lg:hidden">
+              <Plus size={14} /> Items
+            </Button>
+          )}
           <button onClick={() => setMore(true)} className="rounded p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white">
             <MoreHorizontal size={18} />
           </button>

@@ -70,17 +70,17 @@ export default function AdminMenu() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center gap-2 border-b border-slate-800 px-3 py-2">
+      <div className="flex flex-wrap items-center gap-2 border-b border-slate-800 px-3 py-2">
         <h1 className="font-semibold">Menu</h1>
-        <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Filter" className="w-56" />
-        <div className="ml-auto flex gap-2">
+        <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Filter" className="w-full sm:w-56" />
+        <div className="flex flex-wrap gap-2 sm:ml-auto">
           <Button variant="outline" onClick={exportCsv}>Export CSV</Button>
           <Button variant="outline" onClick={() => setCsv('')}>Import CSV</Button>
           <Button variant="primary" onClick={() => setEdit({ categoryId: menu.categories[0]?.id, foodType: 'VEG', price: 0, variations: [], addonGroupIds: [] })}>+ Item</Button>
         </div>
       </div>
-      <div className="scroll-thin flex-1 overflow-y-auto">
-        <table className="w-full text-sm">
+      <div className="scroll-thin flex-1 overflow-auto">
+        <table className="w-full min-w-[720px] text-sm">
           <thead className="sticky top-0 bg-slate-900 text-left text-xs uppercase text-slate-400">
             <tr>
               <th className="px-3 py-2">Item</th>
@@ -122,15 +122,15 @@ export default function AdminMenu() {
 
       {edit && (
         <Modal open onClose={() => setEdit(null)} title={edit.id ? 'Edit item' : 'New item'} footer={<><Button variant="ghost" onClick={() => setEdit(null)}>Cancel</Button><Button variant="primary" onClick={save}>Save</Button></>}>
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            <label className="col-span-2">Name<Input value={edit.name ?? ''} onChange={(e) => setEdit({ ...edit, name: e.target.value })} /></label>
+          <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+            <label className="sm:col-span-2">Name<Input value={edit.name ?? ''} onChange={(e) => setEdit({ ...edit, name: e.target.value })} /></label>
             <label>Category<select className="h-10 w-full rounded-lg border border-slate-700 bg-slate-900 px-2" value={edit.categoryId} onChange={(e) => setEdit({ ...edit, categoryId: e.target.value })}>{menu.categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
             <label>Short code<Input value={edit.shortCode ?? ''} onChange={(e) => setEdit({ ...edit, shortCode: e.target.value })} /></label>
             <label>Price (₹) <span className="text-xs text-slate-500">0 = APS, asked at order</span><Input type="number" value={(edit.price ?? 0) / 100} onChange={(e) => setEdit({ ...edit, price: Math.round(Number(e.target.value) * 100) })} /></label>
             <label>Packaging (₹)<Input type="number" value={(edit.packagingCharge ?? 0) / 100} onChange={(e) => setEdit({ ...edit, packagingCharge: Math.round(Number(e.target.value) * 100) })} /></label>
             <label>Food type<select className="h-10 w-full rounded-lg border border-slate-700 bg-slate-900 px-2" value={edit.foodType} onChange={(e) => setEdit({ ...edit, foodType: e.target.value as any })}><option value="VEG">Veg</option><option value="NON_VEG">Non-veg</option><option value="EGG">Egg</option></select></label>
             <label>GST slab<select className="h-10 w-full rounded-lg border border-slate-700 bg-slate-900 px-2" value={edit.taxSlabId ?? ''} onChange={(e) => setEdit({ ...edit, taxSlabId: e.target.value || null })}><option value="">None</option>{menu.taxSlabs.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
-            <div className="col-span-2">
+            <div className="sm:col-span-2">
               <div className="mb-1 flex items-center justify-between"><span>Variations</span><Button size="sm" onClick={() => setEdit({ ...edit, variations: [...(edit.variations ?? []), { id: '', name: '', price: edit.price ?? 0, isDefault: !(edit.variations ?? []).length }] })}>+ Add</Button></div>
               {(edit.variations ?? []).map((v, i) => (
                 <div key={i} className="mb-1 flex gap-2">
@@ -140,7 +140,7 @@ export default function AdminMenu() {
                 </div>
               ))}
             </div>
-            <div className="col-span-2">
+            <div className="sm:col-span-2">
               <div className="mb-1">Add-on groups</div>
               <div className="flex flex-wrap gap-1.5">
                 {menu.addonGroups.map((g) => {

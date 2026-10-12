@@ -20,7 +20,7 @@ export function Button({ variant = 'secondary', size = 'md', className, kbd, chi
       {...rest}
     >
       {children}
-      {kbd && <span className="ml-1 rounded border border-current/30 px-1 text-[10px] opacity-70">{kbd}</span>}
+      {kbd && <span className="ml-1 hidden rounded border border-current/30 px-1 text-[10px] opacity-70 lg:inline">{kbd}</span>}
     </button>
   );
 }
@@ -48,8 +48,9 @@ export function Modal({ open, onClose, title, children, footer, width = 'max-w-l
   }, [open, onClose]);
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 no-print" onMouseDown={onClose}>
-      <div className={cn('flex max-h-[92vh] w-full flex-col rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl', width)} onMouseDown={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 no-print sm:items-center sm:p-4" onMouseDown={onClose}>
+      {/* phones: bottom sheet (thumb-reachable); sm+: centred dialog */}
+      <div className={cn('flex max-h-[92dvh] w-full flex-col rounded-t-2xl border border-slate-700 bg-slate-900 shadow-2xl sm:rounded-2xl', width)} onMouseDown={(e) => e.stopPropagation()}>
         {title && (
           <div className="flex items-center justify-between border-b border-slate-800 px-5 py-3">
             <h2 className="text-base font-semibold">{title}</h2>
@@ -58,8 +59,8 @@ export function Modal({ open, onClose, title, children, footer, width = 'max-w-l
             </button>
           </div>
         )}
-        <div className="scroll-thin flex-1 overflow-y-auto px-5 py-4">{children}</div>
-        {footer && <div className="flex justify-end gap-2 border-t border-slate-800 px-5 py-3">{footer}</div>}
+        <div className="scroll-thin flex-1 overflow-y-auto px-4 py-4 sm:px-5">{children}</div>
+        {footer && <div className="flex flex-wrap justify-end gap-2 border-t border-slate-800 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-5">{footer}</div>}
       </div>
     </div>
   );

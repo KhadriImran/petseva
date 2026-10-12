@@ -44,10 +44,10 @@ export default function AdminSettings() {
   return (
     <div className="scroll-thin h-full overflow-y-auto p-4">
       <h1 className="mb-3 font-semibold">Outlet settings</h1>
-      <div className="grid max-w-3xl grid-cols-2 gap-3">
+      <div className="grid max-w-3xl grid-cols-1 gap-3 sm:grid-cols-2">
         <F k="name" label="Outlet name" />
         <F k="phone" label="Phone" />
-        <label className="col-span-2 text-sm">Address (one line per row)<textarea value={form.addressLines} onChange={(e) => setForm({ ...form, addressLines: e.target.value })} className="h-16 w-full rounded-lg border border-slate-700 bg-slate-900 p-2 text-sm" /></label>
+        <label className="text-sm sm:col-span-2">Address (one line per row)<textarea value={form.addressLines} onChange={(e) => setForm({ ...form, addressLines: e.target.value })} className="h-16 w-full rounded-lg border border-slate-700 bg-slate-900 p-2 text-sm" /></label>
         <F k="gstin" label="GSTIN" />
         <F k="fssai" label="FSSAI" />
         <Sel k="taxInclusive" label="Menu prices are" opts={[['false', 'Exclusive of GST (tax added on bill)'], ['true', 'Inclusive of GST']]} />
@@ -58,7 +58,7 @@ export default function AdminSettings() {
         <F k="billPrefix" label="Bill number prefix" />
         <F k="receiptHeader" label="Receipt header line" />
         <F k="receiptFooter" label="Receipt footer" />
-        <div className="col-span-2 flex gap-2">
+        <div className="flex gap-2 sm:col-span-2">
           <Button variant="primary" onClick={save}>Save</Button>
         </div>
       </div>
@@ -66,9 +66,9 @@ export default function AdminSettings() {
       <p className="mb-2 text-xs text-slate-400">Network ESC/POS printers (port 9100). With PRINT_DRY_RUN=true on the server, tickets are previewed instead of sent; the POS always offers browser printing as a fallback.</p>
       <div className="max-w-3xl">
         {(printers ?? []).map((p) => (
-          <div key={p.id} className="flex items-center gap-3 border-b border-slate-800 py-2 text-sm">
-            <span className="w-40 font-medium">{p.name}</span>
-            <span className="w-24 text-slate-400">{p.station}</span>
+          <div key={p.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-slate-800 py-2 text-sm">
+            <span className="font-medium sm:w-40">{p.name}</span>
+            <span className="text-slate-400 sm:w-24">{p.station}</span>
             <span className="text-slate-400">{p.kind === 'NETWORK' ? `${p.host}:${p.port}` : p.kind} · {p.width} cols</span>
             <Button size="sm" className="ml-auto" onClick={() => api('POST', '/print/test', { station: p.station }).then((r) => { setTest(r.text); toast(r.dryRun ? 'Dry-run: preview only' : r.ok ? 'Sent to printer' : `Printer error: ${r.error}`, r.ok ? 'ok' : 'err'); }).catch((e) => toast(e.message, 'err'))}>Test</Button>
           </div>

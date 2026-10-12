@@ -239,14 +239,14 @@ export function BillModal({ order, mode, onClose }: { order: Order; mode: 'bill'
                     Due <span className="text-lg text-white">{inr(remaining)}</span>
                   </span>
                 </div>
-                <div className="mb-3 grid grid-cols-5 gap-1.5">
+                <div className="mb-3 grid grid-cols-3 gap-1.5 sm:grid-cols-5">
                   {MODES.map((m) => (
                     <button key={m.mode} onClick={() => setPayMode(m.mode)} className={cn('rounded-lg border py-2 text-sm', payMode === m.mode ? 'border-brand-500 bg-brand-500/10 text-brand-400' : 'border-slate-700 hover:border-slate-500')}>
                       {m.label}
                     </button>
                   ))}
                 </div>
-                <div className="grid grid-cols-[1fr_auto] gap-4">
+                <div className="grid gap-4 sm:grid-cols-[1fr_auto]">
                   <div>
                     <div className="mb-2 flex items-center rounded-lg bg-slate-950 px-3 text-2xl font-semibold">
                       <span className="mr-1 text-slate-500">₹</span>
@@ -289,11 +289,12 @@ export function BillModal({ order, mode, onClose }: { order: Order; mode: 'bill'
                       </Button>
                     </div>
                   </div>
-                  <div className="w-52 shrink-0">
+                  {/* phones use their own number keyboard */}
+                  <div className="hidden w-52 shrink-0 sm:block">
                     <NumPad value={amount} onChange={setAmount} />
                   </div>
                 </div>
-                <div className="mt-4 flex gap-2 border-t border-slate-800 pt-3">
+                <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-800 pt-3">
                   <Button onClick={generate} disabled={busy} kbd="F9">
                     {bill ? 'Reprint bill' : 'Print bill'}
                   </Button>

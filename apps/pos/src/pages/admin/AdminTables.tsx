@@ -23,9 +23,9 @@ export default function AdminTables() {
   };
   return (
     <div className="scroll-thin h-full overflow-y-auto p-4">
-      <div className="mb-4 flex items-center gap-2">
-        <h1 className="font-semibold">Floor & tables</h1>
-        <Input value={areaName} onChange={(e) => setAreaName(e.target.value)} placeholder="New area name" className="ml-auto w-48" />
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <h1 className="w-full font-semibold sm:w-auto">Floor & tables</h1>
+        <Input value={areaName} onChange={(e) => setAreaName(e.target.value)} placeholder="New area name" className="min-w-0 flex-1 sm:ml-auto sm:w-48 sm:flex-none" />
         <Button onClick={() => areaName && run(() => api('POST', '/floor/areas', { name: areaName, sortOrder: floor.length }).then(() => setAreaName('')), 'Area added')}>+ Area</Button>
       </div>
       {floor.map((a) => (

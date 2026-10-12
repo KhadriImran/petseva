@@ -48,10 +48,10 @@ export default function OrdersList() {
             {t === 'live' ? 'Running' : 'History'}
           </button>
         ))}
-        <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search order # / table / phone" className="ml-auto w-64" />
+        <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search order / table / phone" className="ml-auto min-w-0 flex-1 sm:w-64 sm:flex-none" />
       </div>
-      <div className="scroll-thin flex-1 overflow-y-auto">
-        <table className="w-full text-sm">
+      <div className="scroll-thin flex-1 overflow-auto">
+        <table className="w-full min-w-[640px] text-sm">
           <thead className="sticky top-0 bg-slate-900 text-left text-xs uppercase text-slate-400">
             <tr>
               <th className="px-3 py-2">Order</th>

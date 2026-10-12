@@ -124,9 +124,9 @@ export default function Reports() {
           </button>
         ))}
         <div className="flex items-center gap-1 text-sm text-slate-400">
-          <Input type="date" value={range.from} max={range.to} onChange={(e) => e.target.value && setRange({ ...range, from: e.target.value })} className="w-40" />
+          <Input type="date" value={range.from} max={range.to} onChange={(e) => e.target.value && setRange({ ...range, from: e.target.value })} className="w-36 sm:w-40" />
           to
-          <Input type="date" value={range.to} min={range.from} max={ymd()} onChange={(e) => e.target.value && setRange({ ...range, to: e.target.value })} className="w-40" />
+          <Input type="date" value={range.to} min={range.from} max={ymd()} onChange={(e) => e.target.value && setRange({ ...range, to: e.target.value })} className="w-36 sm:w-40" />
         </div>
         <div className="ml-auto flex gap-2">
           <Button size="sm" onClick={() => setPrintText(dayEndText())} disabled={!data}>

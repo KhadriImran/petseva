@@ -69,8 +69,8 @@ export default function AdminStaff() {
           + Add staff
         </Button>
       </div>
-      <div className="max-w-3xl overflow-hidden rounded-lg border border-slate-800">
-        <table className="w-full text-sm">
+      <div className="scroll-thin max-w-3xl overflow-x-auto rounded-lg border border-slate-800">
+        <table className="w-full min-w-[560px] text-sm">
           <thead className="bg-slate-900 text-left text-xs uppercase text-slate-400">
             <tr>
               <th className="px-3 py-2">Name</th>
@@ -120,8 +120,8 @@ export default function AdminStaff() {
         }
       >
         {edit && (
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            <label className="col-span-2">
+          <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+            <label className="sm:col-span-2">
               Name
               <Input value={edit.name ?? ''} onChange={(e) => setEdit({ ...edit, name: e.target.value })} placeholder="e.g. Ramesh" autoFocus />
             </label>
@@ -133,7 +133,7 @@ export default function AdminStaff() {
               {edit.id ? 'New password (leave empty to keep)' : 'Password'}
               <Input type="text" value={edit.password ?? ''} onChange={(e) => setEdit({ ...edit, password: e.target.value })} placeholder="min 6 characters" />
             </label>
-            <label className="col-span-2">
+            <label className="sm:col-span-2">
               Role
               <select className="h-10 w-full rounded-lg border border-slate-700 bg-slate-900 px-2" value={edit.role} disabled={edit.id === me?.id} onChange={(e) => setEdit({ ...edit, role: e.target.value as Role })}>
                 {(Object.keys(ROLE_HELP) as Role[]).map((r) => (
@@ -144,7 +144,7 @@ export default function AdminStaff() {
               </select>
             </label>
             {(edit.role === 'OWNER' || edit.role === 'MANAGER') && (
-              <label className="col-span-2">
+              <label className="sm:col-span-2">
                 {edit.hasPin ? 'New PIN (leave empty to keep)' : 'Approval PIN (4–6 digits)'}
                 <Input inputMode="numeric" maxLength={6} value={edit.pin ?? ''} onChange={(e) => setEdit({ ...edit, pin: e.target.value.replace(/\D/g, '') })} />
               </label>
